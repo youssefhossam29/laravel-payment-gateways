@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         //
+        $middleware->validateCsrfTokens(except: [
+            'paymob/callback',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
