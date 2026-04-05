@@ -1,0 +1,86 @@
+<?php
+
+namespace App\Services\Payments;
+
+use App\Models\Order;
+use App\Services\Payments\Contracts\PaymentDriver;
+use App\Services\Payments\Drivers\PaymobDriver;
+use App\Services\Payments\Drivers\CODDriver;
+use Illuminate\Support\Facades\DB;
+use Exception;
+
+class PaymentService
+{
+    // Maps payment methods to their driver classes + gateway name
+    private array $drivers = [
+        'card'   => ['driver' => PaymobDriver::class, 'gateway' => 'paymob'],
+        'wallet' => ['driver' => PaymobDriver::class, 'gateway' => 'paymob'],
+        'cod'    => ['driver' => CODDriver::class,    'gateway' => 'cod'   ],
+    ];
+
+    // Maps gateway names to their driver classes
+    private array $gatewayDrivers = [
+        'paymob' => PaymobDriver::class,
+        'cod'    => CODDriver::class,
+    ];
+
+    private function resolve(string $method): PaymentDriver
+    {
+        if (!isset($this->drivers[$method])) {
+            throw new Exception("Unsupported payment method: {$method}");
+        }
+
+        return app($this->drivers[$method]['driver']);
+    }
+
+    public function pay(array $data): ?string
+    {
+        $method = $data['payment_method'];
+        $driver  = $this->resolve($method);
+        $result  = $driver->pay($data);
+
+        $this->createLocalOrder(
+            $data,
+            $this->drivers[$method]['gateway'],
+            $method === 'cod' ? 'cash' : $method,
+            $result['gateway_order_id'],
+        );
+
+        return $result['url'];
+    }
+
+    public function handleCallback(string $gateway, array $payload, ?string $hmac): bool
+    {
+        if (!isset($this->gatewayDrivers[$gateway])) {
+            throw new Exception("No driver registered for gateway: {$gateway}");
+        }
+
+        $driver = app($this->gatewayDrivers[$gateway]);
+
+        return $driver->handleCallback($payload, $hmac);
+    }
+
+    private function createLocalOrder(array $data, string $gateway, string $method, ?string $gatewayOrderId): Order
+    {
+        return DB::transaction(function () use ($data, $gateway, $method, $gatewayOrderId) {
+
+            $order = Order::create([
+                'user_id' => auth()->id(),
+                'amount' => $data['amount'],
+                'currency' => 'EGP',
+                'status' => 'pending',
+            ]);
+
+            $order->payments()->create([
+                'gateway'          => $gateway,
+                'gateway_order_id' => $gatewayOrderId,
+                'payment_method'   => $method,
+                'status'           => 'pending',
+                'amount'           => $data['amount'],
+                'currency'         => 'EGP',
+            ]);
+
+            return $order;
+        });
+    }
+}
