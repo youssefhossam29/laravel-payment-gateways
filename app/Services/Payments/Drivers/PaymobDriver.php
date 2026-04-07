@@ -150,41 +150,47 @@ class PaymobDriver implements PaymentDriver
     }
 
     // verify Hmac
-    private function verifyHmac(array $data, ?string $hmac): bool
+    private function verifyHmac(array $data, ?string $receivedHmac): bool
     {
+        // Get HMAC secret from config
         $secret = config('paymob.hmac_secret');
 
-        $obj = $data['obj'] ?? [];
-        $order = $obj['order'] ?? [];
-        $source = $obj['source_data'] ?? [];
+        // Extract main parts of the payload
+        $transaction = $data['obj'] ?? [];
+        $order = $transaction['order'] ?? [];
+        $source = $transaction['source_data'] ?? [];
 
-        $boolToStr = fn($val) => filter_var($val, FILTER_VALIDATE_BOOLEAN) ? 'true' : 'false';
+        // Values must follow Paymob's exact required order
+        $values = [
+            $transaction['amount_cents'] ?? '',
+            $transaction['created_at'] ?? '',
+            $transaction['currency'] ?? '',
+            bool_to_string($transaction['error_occured'] ?? false),
+            bool_to_string($transaction['has_parent_transaction'] ?? false),
+            $transaction['id'] ?? '',
+            $transaction['integration_id'] ?? '',
+            bool_to_string($transaction['is_3d_secure'] ?? false),
+            bool_to_string($transaction['is_auth'] ?? false),
+            bool_to_string($transaction['is_capture'] ?? false),
+            bool_to_string($transaction['is_refunded'] ?? false),
+            bool_to_string($transaction['is_standalone_payment'] ?? false),
+            bool_to_string($transaction['is_voided'] ?? false),
+            $order['id'] ?? '',
+            $transaction['owner'] ?? '',
+            bool_to_string($transaction['pending'] ?? false),
+            $source['pan'] ?? '',
+            $source['sub_type'] ?? '',
+            $source['type'] ?? '',
+            bool_to_string($transaction['success'] ?? false),
+        ];
 
-        $string =
-            ($obj['amount_cents'] ?? '') .
-            ($obj['created_at'] ?? '') .
-            ($obj['currency'] ?? '') .
-            $boolToStr($obj['error_occured'] ?? false) .
-            $boolToStr($obj['has_parent_transaction'] ?? false) .
-            ($obj['id'] ?? '') .
-            ($obj['integration_id'] ?? '') .
-            $boolToStr($obj['is_3d_secure'] ?? false) .
-            $boolToStr($obj['is_auth'] ?? false) .
-            $boolToStr($obj['is_capture'] ?? false) .
-            $boolToStr($obj['is_refunded'] ?? false) .
-            $boolToStr($obj['is_standalone_payment'] ?? false) .
-            $boolToStr($obj['is_voided'] ?? false) .
-            ($order['id'] ?? '') .
-            ($obj['owner'] ?? '') .
-            $boolToStr($obj['pending'] ?? false) .
-            ($source['pan'] ?? '') .
-            ($source['sub_type'] ?? '') .
-            ($source['type'] ?? '') .
-            $boolToStr($obj['success'] ?? false);
+        // Concatenate all values into a single string
+        $concatenatedString = implode('', $values);
 
-        $calculated = hash_hmac('sha512', $string, $secret);
+        // Generate HMAC using SHA-512
+        $calculatedHmac = hash_hmac('sha512', $concatenatedString, $secret);
 
-        return hash_equals($calculated, (string) $hmac);
+        return hash_equals($calculatedHmac, (string) $receivedHmac);
     }
 
     private function buildBillingData(array $data): array
