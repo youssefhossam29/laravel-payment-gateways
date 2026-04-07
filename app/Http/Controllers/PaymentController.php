@@ -33,13 +33,22 @@ class PaymentController extends Controller
             'postal_code'    => 'nullable|string|max:20',
         ]);
 
-        try {
-            $user = auth()->user();
-            $nameParts = explode(' ', $user->name, 2);
-            $validated['first_name'] = $nameParts[0];
-            $validated['last_name']  = $nameParts[1] ?? 'NA';
-            $validated['email']      = $user->email;
+        $user = auth()->user();
+        $name = $user->name;
 
+        if ((count(explode(" ", $name)) == 1)) {
+            $first_name = $name;
+            $last_name = $name;
+        } else {
+            $first_name = explode(" ", $name)[0];
+            $last_name = explode(" ", $name)[1];
+        }
+
+        $validated['first_name'] = $first_name;
+        $validated['last_name'] = $last_name;
+        $validated['email'] = $user->email;
+
+        try {
             $url = $this->paymentService->pay($validated);
 
             return $url
