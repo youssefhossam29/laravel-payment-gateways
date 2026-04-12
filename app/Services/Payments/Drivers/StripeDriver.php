@@ -11,7 +11,12 @@ use Exception;
 
 class StripeDriver implements PaymentDriver
 {
-    private string $baseUrl = "https://api.stripe.com";
+    private string $baseUrl;
+
+    public function __construct()
+    {
+        $this->baseUrl = config("stripe.base_url");
+    }
 
     public function pay(array $data): array
     {

@@ -11,7 +11,12 @@ use Exception;
 
 class PaymobDriver implements PaymentDriver
 {
-    private string $baseUrl = "https://accept.paymob.com/api";
+    private string $baseUrl;
+
+    public function __construct()
+    {
+        $this->baseUrl = config("paymob.base_url");
+    }
 
     public function pay(array $data): array
     {
