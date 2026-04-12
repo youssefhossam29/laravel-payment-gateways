@@ -112,6 +112,13 @@
                                         Cash on Delivery
                                     </div>
                                 </label>
+                                <label class="method-card">
+                                    <input type="radio" name="payment_method" value="stripe" {{ old('payment_method') === 'stripe' ? 'checked' : '' }}>
+                                    <div class="card-content">
+                                        <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">  <path d="M13.479 10.636c0-1.643 1.31-2.202 3.49-2.202 1.24 0 2.48.233 3.72.67V5.38a9.86 9.86 0 0 0-3.72-.67C12.44 4.71 9.92 6.65 9.92 10.73c0 6.18 8.48 5.18 8.48 7.74 0 1.94-1.69 2.51-3.94 2.51-1.7 0-3.48-.45-5.04-1.21v3.91c1.6.67 3.54 1.04 5.5 1.04 4.71 0 7.44-2.33 7.44-6.28 0-6.67-8.48-5.49-8.48-7.81z" fill="currentColor"/></svg>
+                                        Stripe
+                                    </div>
+                                </label>
                             </div>
                         </div>
 

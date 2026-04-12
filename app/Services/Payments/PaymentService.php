@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Services\Payments\Contracts\PaymentDriver;
 use App\Services\Payments\Drivers\PaymobDriver;
 use App\Services\Payments\Drivers\CODDriver;
+use App\Services\Payments\Drivers\StripeDriver;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
@@ -16,12 +17,14 @@ class PaymentService
         'card'   => ['driver' => PaymobDriver::class, 'gateway' => 'paymob'],
         'wallet' => ['driver' => PaymobDriver::class, 'gateway' => 'paymob'],
         'cod'    => ['driver' => CODDriver::class,    'gateway' => 'cod'   ],
+        'stripe' => ['driver' => StripeDriver::class, 'gateway' => 'stripe'],
     ];
 
     // Maps gateway names to their driver classes
     private array $gatewayDrivers = [
         'paymob' => PaymobDriver::class,
         'cod'    => CODDriver::class,
+        'stripe' => StripeDriver::class,
     ];
 
     private function resolve(string $method): PaymentDriver

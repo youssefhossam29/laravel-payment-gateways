@@ -18,6 +18,7 @@ if (!function_exists('extractPayload')) {
     function extractPayload(Request $request, string $gateway)
     {
         return match ($gateway) {
+            'stripe' => $request->getContent(), // RAW
             'paymob' => $request->json()->all(),
             default => throw new Exception("Unsupported gateway: {$gateway}")
         };
@@ -31,6 +32,7 @@ if (!function_exists('extractSignature')) {
     function extractSignature(Request $request, string $gateway)
     {
         return match ($gateway) {
+            'stripe' => $request->header('Stripe-Signature'),
             'paymob' => $request->query('hmac'),
             default => null
         };

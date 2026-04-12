@@ -22,7 +22,7 @@ class PaymentController extends Controller
         $validated = $request->validate([
             'phone_number'   => 'required|string|max:20',
             'amount'         => 'required|numeric|min:1',
-            'payment_method' => 'required|in:card,wallet,cod',
+            'payment_method' => 'required|in:card,wallet,cod,stripe',
             'apartment'      => 'nullable|string|max:50',
             'floor'          => 'nullable|string|max:50',
             'street'         => 'nullable|string|max:255',

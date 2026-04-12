@@ -32,6 +32,9 @@ Route::controller(PaymentController::class)->group(function () {
 
     // Paymob Webhook
     Route::post('paymob/callback', 'callback')->name('paymob.callback');
+
+    // Stripe Webhook
+    Route::post('stripe/webhook', 'callback')->name('stripe.webhook');
 });
 
 
