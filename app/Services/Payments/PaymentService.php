@@ -60,6 +60,19 @@ class PaymentService
         return $driver->handleCallback($payload, $hmac);
     }
 
+    public function handleResponse(array $payload, array $params): bool
+    {
+        $gateway = $params['gateway_type'] ?? null;
+
+        if (!$gateway || !isset($this->gatewayDrivers[$gateway])) {
+            throw new Exception("No driver registered for gateway: {$gateway}");
+        }
+
+        $driver = app($this->gatewayDrivers[$gateway]);
+
+        return $driver->handleResponse($payload, $params);
+    }
+
     private function createLocalOrder(array $data, string $gateway, string $method, ?string $gatewayOrderId): Order
     {
         return DB::transaction(function () use ($data, $gateway, $method, $gatewayOrderId) {

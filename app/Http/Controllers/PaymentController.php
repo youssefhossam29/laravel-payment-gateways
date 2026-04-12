@@ -60,7 +60,7 @@ class PaymentController extends Controller
         }
     }
 
-    // Paymob Server-to-Server Callback
+    // Payment Server-to-Server Callback
     public function callback(Request $request)
     {
         try {
@@ -83,9 +83,15 @@ class PaymentController extends Controller
     // User Redirect After Payment
     public function response(Request $request)
     {
-        return filter_var($request->query('success'), FILTER_VALIDATE_BOOLEAN)
-            ? redirect()->route('payment.success')
-            : redirect()->route('payment.failed');
+        $params = $request->query();
+
+        $success = $this->paymentService->handleResponse($request->json()->all(), $params);
+
+        if($success){
+            return redirect()->route('payment.success');
+        } else {
+            return redirect()->route('payment.failed');
+        }
     }
 
     // Redirect to success page

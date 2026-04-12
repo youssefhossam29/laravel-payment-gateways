@@ -25,10 +25,13 @@ Route::middleware('auth')->group(function () {
 
 
 Route::controller(PaymentController::class)->group(function () {
-    Route::post('paymob/callback', 'callback')->name('payment.callback');
+    // User Redirects
     Route::get('payment/response', 'response')->name('payment.response');
     Route::get('payment/success', 'success')->name('payment.success');
     Route::get('payment/failed', 'failed')->name('payment.failed');
+
+    // Paymob Webhook
+    Route::post('paymob/callback', 'callback')->name('paymob.callback');
 });
 
 

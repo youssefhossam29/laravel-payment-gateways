@@ -13,33 +13,6 @@ class PaymobDriver implements PaymentDriver
 {
     private string $baseUrl = "https://accept.paymob.com/api";
 
-    public function createIntention(array $data): array
-    {
-        $method = $data['payment_method'];
-        $integrationId = (int) config("paymob.integration.$method");
-
-        $response = Http::withHeaders([
-            'Authorization' => 'Token ' . config('paymob.secret_key'),
-            'Content-Type'  => 'application/json',
-        ])->post('https://accept.paymob.com/v1/intention/', [
-            'amount'          => $data['amount'] * 100,
-            'currency'        => 'EGP',
-            'payment_methods' => [$integrationId],
-            'items'           => [],
-            'billing_data'    => $this->buildBillingData($data),
-            'expiration'      => 3600,
-        ]);
-
-        if ($response->successful()) {
-            return [
-                $response->json('payment_keys.0.key'),
-                $response->json('payment_keys.0.order_id'),
-            ];
-        }
-
-        throw new Exception('Failed to create intention: ' . $response->body());
-    }
-
     public function pay(array $data): array
     {
         $method = $data['payment_method'];
@@ -53,45 +26,6 @@ class PaymobDriver implements PaymentDriver
             'url' => $this->getIframeUrl($paymentToken, $method),
             'gateway_order_id' => (string) $paymobOrderId,
         ];
-    }
-
-    public function handleCallback(array $payload, ?string $hmac): bool
-    {
-        if (!$this->verifyHmac($payload, $hmac)) {
-            throw new Exception('Invalid HMAC', 403);
-        }
-
-        $obj = $payload['obj'] ?? [];
-        $success = filter_var($obj['success'] ?? false, FILTER_VALIDATE_BOOLEAN);
-        $paymobOrderId = (string) ($obj['order']['id'] ?? '');
-        $transactionId = (string) ($obj['id'] ?? '');
-
-        $payment = Payment::where('gateway_order_id', $paymobOrderId)
-            ->where('gateway', 'paymob')
-            ->where('status', 'pending')
-            ->with('order')
-            ->firstOrFail();
-
-        DB::transaction(function () use ($payment, $success, $transactionId, $obj) {
-            if ($success) {
-                $payment->update([
-                    'transaction_id' => $transactionId,
-                    'status' => 'paid',
-                    'gateway_response' => $obj,
-                    'paid_at' => now(),
-                ]);
-                $payment->order->markAsPaid();
-            } else {
-                $payment->update([
-                    'transaction_id' => $transactionId ?: null,
-                    'status' => 'failed',
-                    'gateway_response' => $obj,
-                ]);
-                $payment->order->markAsFailed();
-            }
-        });
-
-        return $success;
     }
 
     private function generateAuthToken(): string
@@ -147,6 +81,52 @@ class PaymobDriver implements PaymentDriver
     {
         $iframeId = config("paymob.frame_id.{$method}");
         return "https://accept.paymob.com/api/acceptance/iframes/{$iframeId}?payment_token={$token}";
+    }
+
+    // handle user redirect response
+    public function handleResponse(array $payload, array $params): bool
+    {
+        return filter_var($params['success'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    // handle server-to-server callback
+    public function handleCallback(array $payload, ?string $hmac): bool
+    {
+        if (!$this->verifyHmac($payload, $hmac)) {
+            throw new Exception('Invalid HMAC', 403);
+        }
+
+        $obj = $payload['obj'] ?? [];
+        $success = filter_var($obj['success'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        $paymobOrderId = (string) ($obj['order']['id'] ?? '');
+        $transactionId = (string) ($obj['id'] ?? '');
+
+        $payment = Payment::where('gateway_order_id', $paymobOrderId)
+            ->where('gateway', 'paymob')
+            ->where('status', 'pending')
+            ->with('order')
+            ->firstOrFail();
+
+        DB::transaction(function () use ($payment, $success, $transactionId, $obj) {
+            if ($success) {
+                $payment->update([
+                    'transaction_id' => $transactionId,
+                    'status' => 'paid',
+                    'gateway_response' => $obj,
+                    'paid_at' => now(),
+                ]);
+                $payment->order->markAsPaid();
+            } else {
+                $payment->update([
+                    'transaction_id' => $transactionId ?: null,
+                    'status' => 'failed',
+                    'gateway_response' => $obj,
+                ]);
+                $payment->order->markAsFailed();
+            }
+        });
+
+        return $success;
     }
 
     // verify Hmac
@@ -210,5 +190,33 @@ class PaymobDriver implements PaymentDriver
             'country' => $data['country'] ?? 'EG',
             'state' => $data['state'] ?? 'NA',
         ];
+    }
+
+    // this method represents the new way of creating intention and getting payment token in one step
+    public function createIntention(array $data): array
+    {
+        $method = $data['payment_method'];
+        $integrationId = (int) config("paymob.integration.$method");
+
+        $response = Http::withHeaders([
+            'Authorization' => 'Token ' . config('paymob.secret_key'),
+            'Content-Type'  => 'application/json',
+        ])->post('https://accept.paymob.com/v1/intention/', [
+            'amount'          => $data['amount'] * 100,
+            'currency'        => 'EGP',
+            'payment_methods' => [$integrationId],
+            'items'           => [],
+            'billing_data'    => $this->buildBillingData($data),
+            'expiration'      => 3600,
+        ]);
+
+        if ($response->successful()) {
+            return [
+                $response->json('payment_keys.0.key'),
+                $response->json('payment_keys.0.order_id'),
+            ];
+        }
+
+        throw new Exception('Failed to create intention: ' . $response->body());
     }
 }
