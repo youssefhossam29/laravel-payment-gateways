@@ -15,7 +15,12 @@ class CODDriver implements PaymentDriver
         ];
     }
 
-    public function handleCallback(array $payload, ?string $hmac): bool
+    public function handleCallback(mixed $payload, ?string $signature): bool
+    {
+        return true;
+    }
+
+    public function handleResponse(array $payload, array $params): bool
     {
         return true;
     }

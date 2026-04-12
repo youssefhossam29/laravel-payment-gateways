@@ -90,9 +90,9 @@ class PaymobDriver implements PaymentDriver
     }
 
     // handle server-to-server callback
-    public function handleCallback(array $payload, ?string $hmac): bool
+    public function handleCallback(mixed $payload, ?string $signature): bool
     {
-        if (!$this->verifyHmac($payload, $hmac)) {
+        if (!$this->verifyHmac($payload, $signature)) {
             throw new Exception('Invalid HMAC', 403);
         }
 
@@ -106,6 +106,10 @@ class PaymobDriver implements PaymentDriver
             ->where('status', 'pending')
             ->with('order')
             ->firstOrFail();
+
+        if (!$payment) {
+            return true;
+        }
 
         DB::transaction(function () use ($payment, $success, $transactionId, $obj) {
             if ($success) {

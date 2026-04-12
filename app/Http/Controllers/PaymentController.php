@@ -63,11 +63,17 @@ class PaymentController extends Controller
     // Payment Server-to-Server Callback
     public function callback(Request $request)
     {
+        $params = $request->query();
+        $gateway = $params['gateway_type'] ?? null;
+
         try {
+            $payload = extractPayload($request, $gateway);
+            $signature = extractSignature($request, $gateway);
+
             $success = $this->paymentService->handleCallback(
-                'paymob',
-                $request->json()->all(),
-                $request->query('hmac')
+                $gateway,
+                $payload,
+                $signature
             );
 
             return response()->json([

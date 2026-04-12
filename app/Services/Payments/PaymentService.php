@@ -49,7 +49,7 @@ class PaymentService
         return $result['url'];
     }
 
-    public function handleCallback(string $gateway, array $payload, ?string $hmac): bool
+    public function handleCallback(string $gateway, mixed $payload, ?string $signature): bool
     {
         if (!isset($this->gatewayDrivers[$gateway])) {
             throw new Exception("No driver registered for gateway: {$gateway}");
@@ -57,7 +57,7 @@ class PaymentService
 
         $driver = app($this->gatewayDrivers[$gateway]);
 
-        return $driver->handleCallback($payload, $hmac);
+        return $driver->handleCallback($payload, $signature);
     }
 
     public function handleResponse(array $payload, array $params): bool
