@@ -2,23 +2,23 @@
 
 namespace App\Services\Payments;
 
-use App\Models\Order;
-use App\Models\Payment;
 use App\Interfaces\PaymentGatewayInterface;
+use App\Services\OrderService;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\DB;
 use Exception;
 
 class PaymobPaymentService implements PaymentGatewayInterface
 {
     private string $baseUrl;
+    protected OrderService $orderService;
 
-    public function __construct()
+    public function __construct(OrderService $orderService)
     {
         $this->baseUrl = config("paymob.base_url");
+        $this->orderService = $orderService;
     }
 
-    public function pay(array $data): array
+    public function pay(array $data): string
     {
         $method = $data['payment_method'];
 
@@ -27,10 +27,15 @@ class PaymobPaymentService implements PaymentGatewayInterface
         $paymentToken = $this->generatePaymentToken($token, $paymobOrderId, $data, $method);
         // [$paymentToken, $paymobOrderId] = $this->createIntention($data);
 
-        return [
-            'url' => $this->getIframeUrl($paymentToken, $method),
-            'gateway_order_id' => (string) $paymobOrderId,
-        ];
+        // Create local order and payment record before redirecting to Paymob
+        $this->orderService->createLocalOrder(
+            $data,
+            'paymob',
+            $method,
+            $paymobOrderId,
+        );
+
+        return $this->getIframeUrl($paymentToken, $method);
     }
 
     private function generateAuthToken(): string
@@ -106,36 +111,13 @@ class PaymobPaymentService implements PaymentGatewayInterface
         $paymobOrderId = (string) ($obj['order']['id'] ?? '');
         $transactionId = (string) ($obj['id'] ?? '');
 
-        $payment = Payment::where('gateway_order_id', $paymobOrderId)
-            ->where('gateway', 'paymob')
-            ->where('status', 'pending')
-            ->with('order')
-            ->firstOrFail();
-
-        if (!$payment) {
-            return true;
-        }
-
-        DB::transaction(function () use ($payment, $success, $transactionId, $obj) {
-            if ($success) {
-                $payment->update([
-                    'transaction_id' => $transactionId,
-                    'status' => 'paid',
-                    'gateway_response' => $obj,
-                    'paid_at' => now(),
-                ]);
-                $payment->order->markAsPaid();
-            } else {
-                $payment->update([
-                    'transaction_id' => $transactionId ?: null,
-                    'status' => 'failed',
-                    'gateway_response' => $obj,
-                ]);
-                $payment->order->markAsFailed();
-            }
-        });
-
-        return $success;
+        return $this->orderService->updateOrderStatus(
+            $paymobOrderId,
+            'paymob',
+            $success,
+            $transactionId,
+            $obj
+        );
     }
 
     // verify Hmac

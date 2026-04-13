@@ -4,15 +4,27 @@ namespace App\Services\Payments;
 
 use App\Interfaces\PaymentGatewayInterface;
 use Exception;
+use App\Services\OrderService;
 
 class CODPaymentService implements PaymentGatewayInterface
 {
-    public function pay(array $data): array
+    protected OrderService $orderService;
+
+    public function __construct(OrderService $orderService)
     {
-        return [
-            'url' => null,
-            'gateway_order_id' => null,
-        ];
+        $this->orderService = $orderService;
+    }
+
+    public function pay(array $data): string
+    {
+        $this->orderService->createLocalOrder(
+            $data,
+            'cod',
+            'cash',
+            null,
+        );
+
+        return route('payment.success');
     }
 
     public function handleCallback(mixed $payload, ?string $signature): bool

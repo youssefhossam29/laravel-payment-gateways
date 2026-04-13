@@ -2,23 +2,23 @@
 
 namespace App\Services\Payments;
 
-use App\Models\Order;
-use App\Models\Payment;
 use App\Interfaces\PaymentGatewayInterface;
+use App\Services\OrderService;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\DB;
 use Exception;
 
 class StripePaymentService implements PaymentGatewayInterface
 {
     private string $baseUrl;
+    protected OrderService $orderService;
 
-    public function __construct()
+    public function __construct(OrderService $orderService)
     {
         $this->baseUrl = config("stripe.base_url");
+        $this->orderService = $orderService;
     }
 
-    public function pay(array $data): array
+    public function pay(array $data): string
     {
         $response = Http::withBasicAuth(config('stripe.secret_key'), '')
             ->asForm()
@@ -48,10 +48,15 @@ class StripePaymentService implements PaymentGatewayInterface
             throw new Exception('Stripe error: ' . $response->body());
         }
 
-        return [
-            'url' => $response['url'],
-            'gateway_order_id' => $response['id'],
-        ];
+        // Create local order and payment record before redirecting to Paymob
+        $this->orderService->createLocalOrder(
+            $data,
+            'stripe',
+            $data['payment_method'],
+            $stripeOrderId = $response['id'] ?? null,
+        );
+
+        return $response['url'];
     }
 
     public function handleResponse(array $payload, array $params): bool
@@ -89,36 +94,13 @@ class StripePaymentService implements PaymentGatewayInterface
         $status = ($session['status'] ?? '') === 'complete';
         $success = $paymentStatus && $status;
 
-        $payment = Payment::where('gateway_order_id', $stripeOrderId)
-            ->where('gateway', 'stripe')
-            ->where('status', 'pending')
-            ->with('order')
-            ->firstOrFail();
-
-        if (!$payment) {
-            return true;
-        }
-
-        DB::transaction(function () use ($payment, $success, $transactionId, $event) {
-            if ($success) {
-                $payment->update([
-                    'transaction_id' => $transactionId,
-                    'status' => 'paid',
-                    'gateway_response' => $event,
-                    'paid_at' => now(),
-                ]);
-                $payment->order->markAsPaid();
-            } else {
-                $payment->update([
-                    'transaction_id' => $transactionId ?: null,
-                    'status' => 'failed',
-                    'gateway_response' => $event,
-                ]);
-                $payment->order->markAsFailed();
-            }
-        });
-
-        return $success;
+        return $this->orderService->updateOrderStatus(
+            $stripeOrderId,
+            'stripe',
+            $success,
+            $transactionId,
+            $event
+        );
     }
 
     private function verifyWebhookSignature(string $payload, string $signature): bool
