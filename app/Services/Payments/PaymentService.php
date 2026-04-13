@@ -3,7 +3,7 @@
 namespace App\Services\Payments;
 
 use App\Models\Order;
-use App\Services\Payments\Contracts\PaymentDriver;
+use App\Interfaces\PaymentGatewayInterface;
 use App\Services\Payments\Drivers\PaymobDriver;
 use App\Services\Payments\Drivers\CODDriver;
 use App\Services\Payments\Drivers\StripeDriver;
@@ -27,7 +27,7 @@ class PaymentService
         'stripe' => StripeDriver::class,
     ];
 
-    private function resolve(string $method): PaymentDriver
+    private function resolve(string $method): PaymentGatewayInterface
     {
         if (!isset($this->drivers[$method])) {
             throw new Exception("Unsupported payment method: {$method}");

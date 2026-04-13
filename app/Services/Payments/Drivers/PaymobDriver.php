@@ -4,12 +4,12 @@ namespace App\Services\Payments\Drivers;
 
 use App\Models\Order;
 use App\Models\Payment;
-use App\Services\Payments\Contracts\PaymentDriver;
+use App\Interfaces\PaymentGatewayInterface;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
-class PaymobDriver implements PaymentDriver
+class PaymobDriver implements PaymentGatewayInterface
 {
     private string $baseUrl;
 

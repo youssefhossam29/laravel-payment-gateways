@@ -2,10 +2,10 @@
 
 namespace App\Services\Payments\Drivers;
 
-use App\Services\Payments\Contracts\PaymentDriver;
+use App\Interfaces\PaymentGatewayInterface;
 use Exception;
 
-class CODDriver implements PaymentDriver
+class CODDriver implements PaymentGatewayInterface
 {
     public function pay(array $data): array
     {

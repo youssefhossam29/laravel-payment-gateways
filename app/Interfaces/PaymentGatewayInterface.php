@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services\Payments\Contracts;
+namespace App\Interfaces;
 
-interface PaymentDriver
+interface PaymentGatewayInterface
 {
     public function pay(array $data): array;
 
