@@ -4,9 +4,9 @@ namespace App\Services\Payments;
 
 use App\Models\Order;
 use App\Interfaces\PaymentGatewayInterface;
-use App\Services\Payments\Drivers\PaymobDriver;
-use App\Services\Payments\Drivers\CODDriver;
-use App\Services\Payments\Drivers\StripeDriver;
+use App\Services\Payments\PaymobPaymentService;
+use App\Services\Payments\CODPaymentService;
+use App\Services\Payments\StripePaymentService;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
@@ -14,17 +14,17 @@ class PaymentService
 {
     // Maps payment methods to their driver classes + gateway name
     private array $drivers = [
-        'card'   => ['driver' => PaymobDriver::class, 'gateway' => 'paymob'],
-        'wallet' => ['driver' => PaymobDriver::class, 'gateway' => 'paymob'],
-        'cod'    => ['driver' => CODDriver::class,    'gateway' => 'cod'   ],
-        'stripe' => ['driver' => StripeDriver::class, 'gateway' => 'stripe'],
+        'card'   => ['driver' => PaymobPaymentService::class, 'gateway' => 'paymob'],
+        'wallet' => ['driver' => PaymobPaymentService::class, 'gateway' => 'paymob'],
+        'cod'    => ['driver' => CODPaymentService::class,    'gateway' => 'cod'   ],
+        'stripe' => ['driver' => StripePaymentService::class, 'gateway' => 'stripe'],
     ];
 
     // Maps gateway names to their driver classes
     private array $gatewayDrivers = [
-        'paymob' => PaymobDriver::class,
-        'cod'    => CODDriver::class,
-        'stripe' => StripeDriver::class,
+        'paymob' => PaymobPaymentService::class,
+        'cod'    => CODPaymentService::class,
+        'stripe' => StripePaymentService::class,
     ];
 
     private function resolve(string $method): PaymentGatewayInterface

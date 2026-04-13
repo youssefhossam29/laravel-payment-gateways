@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services\Payments\Drivers;
+namespace App\Services\Payments;
 
 use App\Models\Order;
 use App\Models\Payment;
@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\DB;
 use Exception;
 
-class StripeDriver implements PaymentGatewayInterface
+class StripePaymentService implements PaymentGatewayInterface
 {
     private string $baseUrl;
 

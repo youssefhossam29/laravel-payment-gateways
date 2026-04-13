@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Services\Payments\Drivers;
+namespace App\Services\Payments;
 
 use App\Interfaces\PaymentGatewayInterface;
 use Exception;
 
-class CODDriver implements PaymentGatewayInterface
+class CODPaymentService implements PaymentGatewayInterface
 {
     public function pay(array $data): array
     {
