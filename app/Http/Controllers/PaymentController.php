@@ -50,11 +50,7 @@ class PaymentController extends Controller
 
         try {
             $url = $this->paymentService->pay($validated);
-
-            return $url
-                ? redirect($url)
-                : redirect()->route('payment.success');
-
+            return redirect($url);
         } catch (Exception $e) {
             return back()->withInput()->withErrors(['error' => $e->getMessage()]);
         }
