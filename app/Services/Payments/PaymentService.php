@@ -10,60 +10,40 @@ use Exception;
 
 class PaymentService
 {
-    // Maps payment methods to their service classes + gateway name
-    private array $services = [
-        'card'   => ['service' => PaymobPaymentService::class, 'gateway' => 'paymob'],
-        'wallet' => ['service' => PaymobPaymentService::class, 'gateway' => 'paymob'],
-        'cod'    => ['service' => CODPaymentService::class,    'gateway' => 'cod'   ],
-        'stripe' => ['service' => StripePaymentService::class, 'gateway' => 'stripe'],
-    ];
-
-    // Maps gateway names to their service classes
-    private array $gatewayServices = [
-        'paymob' => PaymobPaymentService::class,
-        'cod'    => CODPaymentService::class,
-        'stripe' => StripePaymentService::class,
-    ];
-
-    private function resolve(string $method): PaymentGatewayInterface
+    public function mapMethodToGateway(string $method): string
     {
-        if (!isset($this->services[$method])) {
-            throw new Exception("Unsupported payment method: {$method}");
-        }
-
-        return app($this->services[$method]['service']);
+        return match ($method) {
+            'card', 'wallet' => 'paymob',
+            'stripe' => 'stripe',
+            'cod' => 'cod',
+            default => throw new Exception("Unsupported payment method"),
+        };
     }
 
-    public function pay(array $data): ?string
+    public function resolve(string $gateway): PaymentGatewayInterface
     {
-        $method = $data['payment_method'];
-        $service  = $this->resolve($method);
-        $result  = $service->pay($data);
-
-        return $result;
+        return match ($gateway) {
+            'paymob' => app(PaymobPaymentService::class),
+            'stripe' => app(StripePaymentService::class),
+            'cod' => app(CODPaymentService::class),
+            default => throw new Exception("Unsupported gateway"),
+        };
     }
 
-    public function handleCallback(string $gateway, mixed $payload, ?string $signature): bool
+    public function pay(array $data): string
     {
-        if (!isset($this->gatewayServices[$gateway])) {
-            throw new Exception("No service registered for gateway: {$gateway}");
-        }
+        $gateway = $this->mapMethodToGateway($data['payment_method']);
+        return $this->resolve($gateway)->pay($data);
+    }
 
-        $service = app($this->gatewayServices[$gateway]);
-
-        return $service->handleCallback($payload, $signature);
+    public function handleCallback(string $gateway, $payload, $signature): bool
+    {
+        return $this->resolve($gateway)->handleCallback($payload, $signature);
     }
 
     public function handleResponse(array $payload, array $params): bool
     {
         $gateway = $params['gateway_type'] ?? null;
-
-        if (!$gateway || !isset($this->gatewayServices[$gateway])) {
-            throw new Exception("No service registered for gateway: {$gateway}");
-        }
-
-        $service = app($this->gatewayServices[$gateway]);
-
-        return $service->handleResponse($payload, $params);
+        return $this->resolve($gateway)->handleResponse($payload, $params);
     }
 }
