@@ -19,12 +19,14 @@ Route::middleware('auth')->group(function () {
 
     Route::controller(PaymentController::class)->group(function () {
         Route::get('payment', 'create')->name('payment.create');
+        Route::post('payment', 'store')->name('payment.store');
     });
 });
 
 
 Route::controller(PaymentController::class)->group(function () {
     // User Redirects
+    Route::get('payment/response', 'response')->name('payment.response');
     Route::get('payment/success', 'success')->name('payment.success');
     Route::get('payment/failed', 'failed')->name('payment.failed');
 });

@@ -18,7 +18,7 @@
                         </div>
                     @endif
 
-                    <form action="#" method="POST">
+                    <form action="{{ route('payment.store') }}" method="POST">
                         @csrf
 
                         <div class="form-section">
