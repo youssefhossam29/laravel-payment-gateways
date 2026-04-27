@@ -3,6 +3,7 @@
 namespace App\Services\Payments;
 
 use App\Interfaces\PaymentGatewayInterface;
+use App\Services\Payments\PaymobPaymentService;
 use App\Services\Payments\CODPaymentService;
 use Exception;
 
@@ -11,6 +12,7 @@ class PaymentService
     public function mapMethodToGateway(string $method): string
     {
         return match ($method) {
+            'card', 'wallet' => 'paymob',
             'cod' => 'cod',
             default => throw new Exception("Unsupported payment method"),
         };
@@ -19,6 +21,7 @@ class PaymentService
     public function resolve(string $gateway): PaymentGatewayInterface
     {
         return match ($gateway) {
+            'paymob' => app(PaymobPaymentService::class),
             'cod' => app(CODPaymentService::class),
             default => throw new Exception("Unsupported gateway"),
         };
