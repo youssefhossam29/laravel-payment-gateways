@@ -56,6 +56,32 @@ class PaymentController extends Controller
         }
     }
 
+    // Payment Server-to-Server Callback
+    public function callback(Request $request)
+    {
+        $params = $request->query();
+        $gateway = $params['gateway_type'] ?? null;
+
+        try {
+            $payload = extractPayload($request, $gateway);
+            $signature = extractSignature($request, $gateway);
+
+            $success = $this->paymentService->handleCallback(
+                $gateway,
+                $payload,
+                $signature
+            );
+
+            return response()->json([
+                'message' => $success ? 'Payment verified & successful' : 'Payment failed',
+            ]);
+
+        } catch (Exception $e) {
+            $code = $e->getCode() === 403 ? 403 : 500;
+            return response()->json(['error' => $e->getMessage()], $code);
+        }
+    }
+
     // User Redirect After Payment
     public function response(Request $request)
     {

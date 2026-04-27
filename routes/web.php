@@ -29,6 +29,9 @@ Route::controller(PaymentController::class)->group(function () {
     Route::get('payment/response', 'response')->name('payment.response');
     Route::get('payment/success', 'success')->name('payment.success');
     Route::get('payment/failed', 'failed')->name('payment.failed');
+
+    // Paymob Webhook
+    Route::post('paymob/callback', 'callback')->name('paymob.callback');
 });
 
 require __DIR__.'/auth.php';
