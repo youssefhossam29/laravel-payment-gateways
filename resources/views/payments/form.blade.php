@@ -90,6 +90,21 @@
                                 <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
                                 Payment Method
                             </div>
+                            <div class="payment-methods">
+                                <label class="method-card">
+                                    <input type="radio" name="payment_method" value="card" {{ old('payment_method', 'card') === 'card' ? 'checked' : '' }}>
+                                    <div class="card-content">
+                                        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4C2.89 4 2.01 4.89 2.01 6L2 18C2 19.11 2.89 20 4 20H20C21.11 20 22 19.11 22 18V6C22 4.89 21.11 4 20 4ZM20 18H4V12H20V18ZM20 8H4V6H20V8Z"></path></svg>
+                                        Credit / Debit Card
+                                    </div>
+                                </label>
+                                <label class="method-card">
+                                    <input type="radio" name="payment_method" value="wallet" {{ old('payment_method') === 'wallet' ? 'checked' : '' }}>
+                                    <div class="card-content">
+                                        <svg fill="currentColor" viewBox="0 0 24 24"><path d="M19 12h-2v3h-3v2h5v-5zM20 4H4c-1.1 4-2 4.9-2 6v8c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-9 14H4v-2h7v2zm0-4H4v-2h7v2zm9 4h-7V6h7v12z"></path></svg>
+                                        Mobile Wallet
+                                    </div>
+                                </label>
                                 <label class="method-card">
                                     <input type="radio" name="payment_method" value="cod" {{ old('payment_method') === 'cod' ? 'checked' : '' }}>
                                     <div class="card-content">
